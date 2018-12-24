@@ -1,0 +1,70 @@
+##-----------------------------------------------------------
+## Analytical estimation for symmetric bi-allelic model
+##-----------------------------------------------------------
+## Data
+n00 <- 900 ; n01 <- 100 ; n <- n00+n01
+
+## Estimation of alpha (assume T=1 for convenience)
+phat <- n01/n    # \hat{p_{01}} in class notes
+alp <- -0.5 * log(1 - 2*phat)   # solved alphaT from \hat{p_{01}}
+
+##---------------------------------------------------------
+## E-step:
+##---------------------------------------------------------
+## Mean number of jumps from state 0 to state 1
+## and from state 1 to state 0
+## E[N(0,1)|X(0)=a,X(T)=b] or E[N(1,0)|X(0)=a,X(T)=b]
+## for the two possible cases of endpoints (a,b).
+## The two means are the same for endpoints (0,0)
+## E[N(0,1)|X(0)=0,X(T)=0]=E[N(1,0)|X(0)=0,X(T)=0].
+## Furthermore, we have
+## E[N(0,1)|X(0)=0,X(T)=1]=1+E[N(1,0)|X(0)=0,X(T)=1],
+## so we need to consider two cases:
+## Case 1: E[N(0,1)|X(0)=0,X(T)=0]
+## Case 2: E[N(0,1)|X(0)=0,X(T)=1]
+##--------------------------------------------------------
+## We check that the equations for the cases make sense
+##--------------------------------------------------------
+tm <- seq(0.01, 2, len=100)
+alp <- 1
+## By choosing alp=1 the waiting time to the next jump is
+## exponential with rate 1
+
+## Case 1: Endpoints (0,1) end expected (0,1) jumps
+mn1 <- 0.5 * alp * tm * (1 - exp(-2*alp*tm)) / (1 + exp(-2*alp*tm))
+plot(tm, mn1, type="l", col="purple", lwd=2, ylim=c(0,2),
+     ylab="Mean number of jumps")
+abline(a=0, b=0.5, col="black")
+
+## Case 2: Endpoints (0,1) and expected (0,1) jumps
+mn2 <- 0.5 * (1 + alp * tm * (1 + exp(-2*alp*tm)) / (1 - exp(-2*alp*tm)) )
+points(tm, mn2, type="l", col="blue", lwd=2)
+legend("topleft", c("Case 1: Mean of N(0,1) with endpoints (0,0)",
+                    "Case 2: Mean of N(0,1) with endpoints (0,1)"),
+       col=c("purple", "blue"), lty=1, lwd=2,bty="n")
+
+# We can see from the plot that the longer we observe,
+# the more probability of jump we see, in both cases.
+# As well as when T -> inf, the expected number of jumps
+# is alpha*T/2
+
+##-----------------------------------------------------------------------
+## EM algorithm for the symmetric bi-allelic Jukes-Cantor model
+##------------------------------------------------------------------------
+## Starting value
+alp <- 2
+
+## Iterations
+for (iter in 1:50){
+    mn1 <- 0.5 * alp * (1 - exp(-2*alp)) / (1 + exp(-2*alp))
+    mn2 <- 0.5 * (1 + alp*(1 + exp(-2*alp)) / (1 - exp(-2*alp)))
+    alp.new<- ( n00*2*mn1 + n01*(2*mn2-1) ) / n
+    alp <- alp.new
+    cat("Iteration:", iter, "; alpha:", alp, "\n")
+}
+
+# Probability matrix (T = 1)
+p1 <- 0.5 + 0.5*exp(-alp)
+p2 <- 0.5 - 0.5*exp(-alp)
+
+P <- matrix(c(p1, p2, p2, p1), nrow = 2, byrow = T)

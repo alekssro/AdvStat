@@ -1,0 +1,36 @@
+1. Determine the maximum likelihood estimates of the four parameters ($\alpha$, $\beta$, $\lambda_1$ , $\lambda_2$) using the EM-algorithm. Derive and describe the EM-algorithm in detail.
+
+Given our observed sequence $Y(y_1, ..., y_n$ and two possible states $k=1$ (low activity) $k=2$ (high activity). We would have a hidden state sequence $Z(z_1, ..., z_n)$ that follows:
+
+$$P(z=1) \sim Poisson(\lambda_1), \space \space \space \space \space \space P(z=2) \sim Poisson(\lambda_2)$$
+then,
+
+$$P(Y|z=1) = \alpha P(z=1), \space \space \space \space \space \space P(Y|z=2) = \beta P(z=2)$$
+being $\beta = 1 - \alpha$. Including the poisson distribution function for the different states, we can obtain the likelihood function as:
+
+$$L(\lambda_1, \lambda_2, \alpha) = \prod[ \alpha e^{-\lambda_1}\frac{\lambda_1^{y_i}}{k!} 1(z=1) + (1-\alpha)e^{-\lambda_2}\frac{\lambda_2^{y_i}}{k!} 1(z=2) ]$$
+
+meaning that we will have a likelihood proportional to
+
+$$L(\lambda_1, \lambda_2, \alpha) \propto \alpha^{n_1} e^{-n_1\lambda_1} \lambda_1^{w_1} (1-\alpha)^{n_2} e^{-n_2\lambda_2} \lambda_2^{w_2}$$
+
+being:
+
+- $n_1$ = nº of times we are in state 1 (low activity) $\rightarrow$ $n_1 = \sum^N{1(z=1)}$
+- $n_2$ = nº of times we are in state 2 (high activity) $\rightarrow$ $n_2 = \sum^N{1(z=2)}$
+- $w_1$ = sum of the observed values when we are in state 1 $\rightarrow$ $w_1 = \sum^N{y_i1(z=1)}$
+- $w_2$ = sum of the observed values when we are in state 2 $\rightarrow$ $w_2 = \sum^N{y_i1(z=2)}$
+
+*Note: $n_1+n_2=N$
+
+Our estimates for the four parameters will then be $\hat{\alpha} = \frac{n_1}{n_1+n_2}$, $\hat{\beta} = 1-\alpha$, $\hat{\lambda_1} = \frac{w_1}{n_1}$ and $\hat{\lambda_2} = \frac{w_2}{n_2}$. For maximizing these expectations, we would use the next expressions:
+
+$$E[n_1|y_i] = \sum_{i=1}^N P(z=1|y_i) = \frac{\sum_{i=1}^N \alpha \space Poisson(\lambda_1, y_i)}{\alpha \space Poisson(\lambda_1, y_i) + (1-\alpha) \space Poisson(\lambda_2, y_i)}$$
+$$E[w_1|y_i] = \sum_{i=1}^N y_i \space P(z=1|y_i)$$
+$$E[w_2|y_i] = \sum_{i=1}^N y_i \space (1-P(z=1|y_i))$$
+If $xPrb = \frac{ \alpha \space Poisson(\lambda_1, y_i)}{\alpha \space Poisson(\lambda_1, y_i) + (1-\alpha) \space Poisson(\lambda_2, y_i)}$, finally we have:
+
+$$\hat{\alpha} = \frac{\sum xPrb}{N}$$
+$$\hat{\beta} = 1 - \hat{\alpha}$$
+$$\hat{\lambda_1} = \frac{\sum y_i \space xPrb}{\sum xPrb}$$
+$$\hat{\lambda_2} = \frac{\sum y_i \space (1-xPrb)}{\sum (1-xPrb)}$$

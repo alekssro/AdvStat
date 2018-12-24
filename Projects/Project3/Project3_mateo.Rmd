@@ -1,0 +1,245 @@
+---
+title: "Project3"
+author: "Mateo Sokac"
+date: "November 18, 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#source("../MyLibrary.R")
+source("NQPAlgorithms.R")
+
+library(lsa)
+library(NMF)
+library(tidyverse)
+library(ggpubr)
+
+PLOTS <- F
+load('project3.RData')
+# so it matches slides 
+
+```
+
+
+For the simplification I transposed the V matrix so the rows of it  coresspond to the patients number (21) and columns coresspond to mutation types (96). 
+The goal of this project is to estimate V matrix but factorazing it into a two matrices H and W, which dot product would estimate of the true V matrix. By evauluating the squered difference between dot product and true matrix we can measure the error, or Residual Sum of Squares (RSS).
+Rss is defined with following formula. 
+$$  RSS(t) = ||V - W(t)H(t)|| $$
+The RSS values should decrease after each epoch and if the values do not change significantly we can argue that algorithm converged. 
+The following picture illustrate the code and procedure of updating rows and columns of W and H matrices. \
+\
+
+![Procedure](procedure.png)
+
+# 1) and 2) question
+Using upper bound in Majorize-Minimaze algorithm as 10000 iterations and threashold of 1e-12 and running it for 500 epochs we can observe that RSS goes down in every iteration as we expect and stabilze after some time. Convergence time is considered if RSS does not change significantly after the new epoch. By observing the plot we can conclude that algorithm converged since RSS does not change significantly. 
+The following picture shows RSS difference between previous epoch and current epoch, which is always positive, meaning total RSS always decreases in next round. The threshold is set to 0.05 which resulted in convergence in epoch number 180. I also included mean cosine similiarity between rows of estimated matrix and true V and got the same result as they got in Alexandrov paper (> 0.98)
+$$\Delta RSS = RSS(t-1) - RSS (t)$$ \
+
+![RSS Difference](converge.png) 
+\
+
+![RSS](total_rss.png)
+\
+```{r, echo=F}
+
+```
+
+### 3) Indentified signatures
+In the paper they used transcribed and untranscribed substitions, increasing their model to accomadate 192 (or double of 96) mutation types. In our example we are dealing with 96 mutation types therefore we cannot compare our plots with their \
+
+```{r fig.width=20, echo=F}
+
+H_plot <- H
+colnames(H_plot) <- colnames(V)
+ggplot(NULL) + 
+  geom_col(mapping =  aes (x = colnames(H_plot), y = H_plot[1, ]/sum( H_plot[1, ]))) +
+  ylab("Probabilities") + 
+  ggtitle("Signature 1")+
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle=90, hjust = 1))
+ggplot(NULL) + 
+  geom_col(mapping =  aes (x = colnames(H_plot), y = H_plot[2, ]/sum( H_plot[2, ]))) +
+  ylab("Probabilities") + 
+  ggtitle("Signature 2")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle=90, hjust = 1))
+ggplot(NULL) + 
+  geom_col(mapping =  aes (x = colnames(H_plot), y = H_plot[3, ]/sum( H_plot[3, ]))) +
+  ylab("Probabilities") + 
+  ggtitle("Signature 3") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle=90, hjust = 1))
+ggplot(NULL) + 
+  geom_col(mapping =  aes (x = colnames(H_plot), y = H_plot[4, ]/sum( H_plot[4, ]) ) ) +
+  ylab("Probabilities") + 
+  ggtitle("Signature 4") + 
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle=90, hjust = 1))
+  
+  
+```
+
+
+### 4) Total mutation count
+Total mutation count is represented by column for each patient (row). By comparing rowsums of true V matrix and our estimated (w %*% h )
+\
+
+```{r, echo = F}
+ggplot(NULL) + 
+  geom_point(mapping = aes (x = 1:21, y = rowSums(V), color = 'True matrix V')) + 
+  geom_point(mapping = aes (x = 1:21, y = rowSums(W %*% H), color = 'Estimated WH')) +
+  scale_y_log10() +
+  ggtitle('Comparison of mutation counts for each patient') + 
+  ylab('Total Mutations') + xlab('Patient Number')+
+  theme_minimal()
+cat('Mean difference between mutation counts:', mean(rowSums(V) - rowSums(W%*%H)), '\n')
+```
+
+
+# 5)
+Matrix W represents weigths for each patient towards each signature. If we take column sums we can observe that Signatture 1 and Signature 3 have much higher loadings in many of patients. \
+
+```{r, echo = F}
+
+ggplot(NULL) + 
+  geom_col(mapping = aes(x= 1:4, y = colSums(W))) + 
+  theme_minimal() +
+  xlab("Signatures") + 
+  ylab('Mutation load for all patients') +
+  ggtitle('Mutation Load for all patients towards each signature')
+
+```
+\
+
+
+### Source code:
+```{r, eval=F}
+V <- t(V)
+V
+cos.sim=function(V, estimate){
+  cosine_sim <- c()
+  for (i in 1:nrow(V) ){
+    cosine_sim <- c(cosine_sim, cosine(V[i, ] ,estimate[i, ]))
+  }
+  mean(cosine_sim)
+}
+
+# calculating RSS using Log scale for readable numbers 
+# or without but we get numbers e+10, so it is hard to see diff
+calcRss <- function(V_matrix, estimateMatrix, log_scale = F){
+  if (log_scale){
+    return(log(sum( ( V_matrix - estimateMatrix)^2)))
+  }
+  return(sum( (V_matrix - estimateMatrix)^2))
+}
+
+# We fix signature number to 4
+signature_number <- 4
+
+# Estimating v matrix with h and w
+num_patient <- nrow(V)
+num_mutations_types <- ncol(V)
+
+# Columns in H are the mutational signatures from exposures such as UV-light or tobacco
+# 4 x 96
+h <- matrix(runif(num_patient*signature_number, 0,1), nrow = signature_number, ncol = num_mutations_types)
+# Rows in W are the weights of the signatures for each patient
+# 21 x 4
+w <- matrix(runif(num_mutations_types * signature_number, 0, 1), ncol = signature_number, nrow = num_patient)
+
+cat("RSS with random matrix: ",calcRss(V, w %*% h, log_scale = F), "\n")
+totalRssList <- c()
+w_RssList <- c()
+h_RssList <- c()
+epochs <- 300
+
+for (epoch in 1:epochs){
+  
+  # # # for every row in w, for every patient
+  for (patient_index in 1:nrow(w)) {
+    # row of v, patient
+    v <- V[patient_index , ]
+    
+    # should be KxK matrix, 4x4
+    # that is why we transpose like that
+    A = 2 * h %*% t(h)
+    # should be negative vector of len K, signature num =4
+    b = as.vector(-2 * h %*% v)
+
+    MMresult <- MajorizeMinimizeNQP(A = A, b = b, maxIter = 10000, tol = 1e-12 )
+    # update row of w
+    w[patient_index , ] <- MMresult$x
+
+    estimate <- w %*% h
+    #cat("Iter: ", patient_index, " RSS: ", calcRss(V, estimate, log_scale = T), "\n")
+    w_RssList[patient_index] <- calcRss(V, estimate)
+  }
+  if (PLOTS) {
+    # plotting RSS change in W
+    plot(ggplot(NULL) +
+      geom_point(mapping = aes (x = 1:length(w_RssList), y = w_RssList)) +
+      xlab("Iteration in MM") +
+      ylab("RSS") +
+      ggtitle("W RSS") +
+      theme_minimal())
+  }
+V
+  
+  #for every col in h, for every mutation type
+  for (signature_index in 1:ncol(V)) {
+    # Column of mutation number
+    v <- V[, signature_index]
+    # Should be KxK matrix, 4x4
+    A = 2 * t(w) %*% w
+    # has to be negative vector of len(number of signatures)
+    # that is why it is transposed like that
+    b = as.vector(-2 * t(w) %*% v) # 4 x 21  * 1x21 = 4x1
+
+    MMresult <- MajorizeMinimizeNQP(A = A, b = b, maxIter = 10000, tol = 1e-12 )
+    # update column of h
+    h[, signature_index] <- MMresult$x 
+    estimate <- w %*% h
+    h_RssList[signature_index] <- calcRss(V, estimate, log_scale = T)
+  }
+
+  if (PLOTS) {
+  # ploting RSS change in H
+    plot(ggplot(NULL) +
+      geom_point(mapping = aes (x = 1:length(h_RssList), y = h_RssList)) +
+      xlab("Iteration in MM") +
+      ylab("RSS") +
+      ggtitle("H RSS") +
+      theme_minimal())
+  }
+  
+  estimate <- w %*% h
+  
+  totalRssList[epoch] <- calcRss(V, estimate, log_scale = F)
+  if (epoch %% 10 == 0){
+    cat("Epoch: " ,epoch , "/",epochs, " RSS difference: ",totalRssList[epoch-1] - totalRssList[epoch] , "\n")
+    cat("Cosine Sim: ", cos.sim(V, estimate), "\n")
+    if((totalRssList[epoch-1] - totalRssList[epoch]) < 0.05){
+      cat("Converged! ")
+      break
+    }
+  }
+}
+
+
+#res_600_epchs_no_log <- totalRssList
+#res_600_epchs_log <- totalRssList
+p <- ggplot(NULL) +
+  geom_point(mapping = aes (x = 3:length(totalRssList), y = totalRssList[3:length(totalRssList)])) +
+  xlab("Epochs") +
+  ylab("RSS") +
+  ggtitle("Total RSS") +
+  theme_minimal()
+
+#ggsave(filename = 'total_rss.png', p)
+#save.image(file="results.RData")
+
+```

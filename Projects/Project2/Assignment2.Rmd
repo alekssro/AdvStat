@@ -1,0 +1,329 @@
+---
+title: "MachineLearningAssignment2"
+author: "Mateo Sokac"
+date: "November 8, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("ASLMiB_Library.R")
+library("tidyverse")
+```
+
+Recall the fetal lamb movement data from Handout 5. We model the data using a HMM with two hidden
+states corresponding to low activity (state 1) and high activity (state 2). The transition matrix for the
+hidden states is then determined by the probability for staying in the low activity state a = p 11 and the
+probability for staying in the high activity state b = p 22 . Furthermore we let the initial distribution be
+π = (1/2, 1/2). The number of movements in the low activity state follows a Poisson distribution with
+rate $\lambda$ 1 and the number of movements in the high activity state is assumed Poisson with rate $\lambda$ 2 .
+We use the notation from Ewens and Grant (2005) Section 12, where O = (O 1 , . . . , O T ) is the
+observed data and Q = (q 1 , . . . , q T ) is the hidden state sequence. \
+
+1. Determine the maximum likelihood estimates of the four parameters (a, b, λ 1 , λ 2 ) using the EM-
+algorithm. Derive and describe the EM-algorithm in detail. \
+\
+
+
+```{r, echo = F, include=F}
+ObsSeq <- c(0,0,0,0,0,1,0,1,0,0,0,0,0,0,1,
+            0,1,0,0,0,0,2,2,0,0,0,0,1,0,0,
+            1,1,0,0,1,1,1,0,0,1,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,
+            1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,1,0,0,0,0,0,7,3,2,3,2,4,
+            0,0,0,0,1,0,0,0,0,0,0,0,1,0,2,
+            0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,
+            2,1,0,0,1,0,0,0,1,0,1,1,0,0,0,
+            1,0,0,1,0,0,0,1,2,0,0,0,1,0,1,
+            1,0,1,0,0,2,0,1,2,1,1,2,1,0,1,
+            1,0,0,1,1,0,0,0,1,1,1,0,4,0,0,
+            2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+
+```
+\
+
+```{r}
+
+EMres <- em2poiss(ObsSeq, alphaEst = 0.5, lambda1Est = 1, lambda2Est = 3, nIter = 150, verbose = F)
+cat("Estimates from EM Poisson are the following: \n\tLambda1:", EMres$lambda1, "\n\tLambda2:",EMres$lambda2 ,"\n\tAlpha Estimate: ", EMres$alphaEst, "\n\tBeta Estimate: ", 1 - EMres$alphaEst )
+```
+\
+In previous weeks we used EM for estimating two gaussian distributions, but here we have two poisson distributions. Poisson distribution has interesting feature, that distribution mean and variance are almost the same, and we describe that with one parameter $\lambda$. Therefore, in EM algorithm we are esimating two lambdas in each iteration. We start with initial parameters which use as input in the algorithm. In every iteration we generate density poisson distribution of length of Observed Sequence using updated lambdas and use the distribution to generate probabilities (xProb). Using Observed sequence we can can calculate new membership probabilities and update lambdas accordingly. The E step of the algorithm, we use our current parameter estimates to construct Jensen's inequality and in second step (M) we find paramteres which will maximaze the bound of Jensen's inequality. The new parameters are calculated by differentiating Q function with respect to each parameter and setting derivative to 0. Estimate of probability distribution is defined by:
+$$  pk = \frac{\sum_l^N{p(k|l)}}{N}$$
+Updating lambdas is done using following formula where p(k|l) is generated density (probability) from poisson and D is observed sequence:
+$$ \lambda_k = \frac{\sum_l^K{p(k|l) * D_l}}{\sum{p(k|l)}}  $$
+\
+
+
+In details: \
+\
+Given our observed sequence $Y(y_1, ..., y_n$ and two possible states $k=1$ (low activity) $k=2$ (high activity). We would have a hidden state sequence $Z(z_1, ..., z_n)$ that follows:
+
+$$P(z=1) \sim Poisson(\lambda_1), \space \space \space \space \space \space P(z=2) \sim Poisson(\lambda_2)$$
+then,
+
+$$P(Y|z=1) = \alpha P(z=1), \space \space \space \space \space \space P(Y|z=2) = \beta P(z=2)$$
+being $\beta = 1 - \alpha$. Including the poisson distribution function for the different states, we can obtain the likelihood function as:
+
+$$L(\lambda_1, \lambda_2, \alpha) = \prod[ \alpha e^{-\lambda_1}\frac{\lambda_1^{y_i}}{k!} 1(z=1) + (1-\alpha)e^{-\lambda_2}\frac{\lambda_2^{y_i}}{k!} 1(z=2) ]$$
+
+meaning that we will have a likelihood proportional to
+
+$$L(\lambda_1, \lambda_2, \alpha) \propto \alpha^{n_1} e^{-n_1\lambda_1} \lambda_1^{w_1} (1-\alpha)^{n_2} e^{-n_2\lambda_2} \lambda_2^{w_2}$$
+
+being:
+
+- $n_1$ = nº of times we are in state 1 (low activity) $\rightarrow$ $n_1 = \sum^N{1(z=1)}$
+- $n_2$ = nº of times we are in state 2 (high activity) $\rightarrow$ $n_2 = \sum^N{1(z=2)}$
+- $w_1$ = sum of the observed values when we are in state 1 $\rightarrow$ $w_1 = \sum^N{y_i1(z=1)}$
+- $w_2$ = sum of the observed values when we are in state 2 $\rightarrow$ $w_2 = \sum^N{y_i1(z=2)}$
+
+*Note: $n_1+n_2=N$
+
+Our estimates for the four parameters will then be $\hat{\alpha} = \frac{n_1}{n_1+n_2}$, $\hat{\beta} = 1-\alpha$, $\hat{\lambda_1} = \frac{w_1}{n_1}$ and $\hat{\lambda_2} = \frac{w_2}{n_2}$. For maximizing these expectations, we would use the next expressions:
+
+$$E[n_1|y_i] = \sum_{i=1}^N P(z=1|y_i) = \frac{\sum_{i=1}^N \alpha \space Poisson(\lambda_1, y_i)}{\alpha \space Poisson(\lambda_1, y_i) + (1-\alpha) \space Poisson(\lambda_2, y_i)}$$
+$$E[w_1|y_i] = \sum_{i=1}^N y_i \space P(z=1|y_i)$$
+$$E[w_2|y_i] = \sum_{i=1}^N y_i \space (1-P(z=1|y_i))$$
+If $xPrb = \frac{ \alpha \space Poisson(\lambda_1, y_i)}{\alpha \space Poisson(\lambda_1, y_i) + (1-\alpha) \space Poisson(\lambda_2, y_i)}$, finally we have:
+
+$$\hat{\alpha} = \frac{\sum xPrb}{N}$$
+$$\hat{\beta} = 1 - \hat{\alpha}$$
+$$\hat{\lambda_1} = \frac{\sum y_i \space xPrb}{\sum xPrb}$$
+$$\hat{\lambda_2} = \frac{\sum y_i \space (1-xPrb)}{\sum (1-xPrb)}$$
+\
+\
+
+2. Determine the Viterbi and Posterior Decoding state sequences. \
+
+\
+
+```{r, include = T, echo = F}
+InitTrans <- matrix(c(0.5,0.5,0.5,0.5), byrow = T, nrow = 2)
+poisEM <- matrix(0,nrow = 2, ncol = 8)
+for(i in 1:100){
+  if (i == 1) {
+    hmmPoisExp <- HMMPoisExpectationsFct(InitProb=c(0.5,0.5),
+                                         TransProb=InitTrans,
+                                         Lambda=c(EMres$lambda1, 
+                                                  EMres$lambda2),ObsSeq=ObsSeq)
+    EstTransMatrix <- hmmPoisExp$TransPrb
+  } else {
+    hmmPoisExp <- HMMPoisExpectationsFct(InitProb=c(0.5,0.5),
+                                         TransProb=EstTransMatrix,
+                                         Lambda=c(lambda1, 
+                                                  lambda2),ObsSeq=ObsSeq)
+    EstTransMatrix <- hmmPoisExp$TransPrb
+  }
+  
+  lambda1 <- sum(hmmPoisExp$PostProb[,1]*ObsSeq/sum(hmmPoisExp$PostProb[,1]))
+  lambda2 <- sum(hmmPoisExp$PostProb[,2]*ObsSeq/sum(hmmPoisExp$PostProb[,2]))
+  #cat("Updated emission probabilities:","\n")
+  #cat(lambda1,lambda2,"\n")
+  lb <- c(lambda1, lambda2)
+  for(i in 0:7){
+    for(j in 1:2){
+      poisEM[j,(i+1)]<-dpois(i, lambda =lb[j] )
+    }
+  }
+  
+}
+
+viterbi <- ViterbiPoisFct(InitProb = c(0.5, 0.5), 
+               TransProb = EstTransMatrix, 
+               Lambda = c(lambda1, lambda2), 
+               ObsSeq = ObsSeq)
+
+par(mfrow = c(3,1))
+plot(1:length(ObsSeq), ObsSeq, 
+     col = 'blue', 
+     type = 'l',
+     main = 'Obeserved Sequence',
+     xlab = 'Seq index', 
+     ylab = 'Observed State')
+plot(1:length(ObsSeq), viterbi$BackTrack , 
+     col = 'red', 
+     type = 'l',
+     main = 'Viterbi Sequence',
+     xlab = 'Seq index', 
+     ylab = 'Observed State')
+plot(1:length(ObsSeq), hmmPoisExp$PostDecode, 
+     col = 'green', 
+     type = 'l',
+     main = 'Posterior Decoding Sequence',
+     xlab = 'Seq index', 
+     ylab = 'Observed State')
+
+
+```
+\
+
+
+
+3. In the following the parameters are fixed at their maximum likelihood estimates and assumed
+known. Calculate the posterior transition probabilities 
+$a_t = Prob(q_t = 1|q_{t−1} = 1, O) and b_t = Prob(q_t = 2|q_{t−1} = 2, O) for \space t = 2, . . . , T.$ \
+
+```{r, include=T, echo = T}
+a <- hmmPoisExp$TransPrb[1,1]
+b <- hmmPoisExp$TransPrb[2,2]
+
+# probs based on obs data
+probs_1 <- hmmPoisExp$Lks[,1] 
+probs_2 <- hmmPoisExp$Lks[,2]
+# Emissons are simulated from pois
+emisson_state_1 <- dpois(ObsSeq, lambda = lambda1 )
+emisson_state_2 <- dpois(ObsSeq, lambda = lambda2 )
+Len <- length(ObsSeq)
+
+p1 <- probs_1[2:length(ObsSeq)] * a * emisson_state_1[2:Len] / probs_1[1:Len - 1]
+p2 <- probs_2[2:length(ObsSeq)] * b * emisson_state_2[2:Len] / probs_2[1:Len - 1]
+
+
+```
+
+4. Plot the transition probabilities a = (a 2 , . . . , a T ) and b = (b 2 , . . . , b T ) and the original data. Discuss the plots: Do the posterior transition probabilities behave as expected? \
+
+```{r, include = T, echo = F}
+par(mfrow = c(3,1))
+plot(2:Len, p2, 
+     col = 'blue', 
+     type = 'l',
+     main = 'P2',
+     xlab = 'Seq index', 
+     ylab = 'Probabilities')
+plot(1:Len, ObsSeq, 
+     col = 'red', 
+     type = 'l',
+     main = 'Observed Seq ',
+     xlab = 'Seq index', 
+     ylab = 'Probabilities')
+plot(2:Len, p1, 
+     col = 'green', 
+     type = 'l',
+     main = 'P1',
+     xlab = 'Seq index', 
+     ylab = 'Probabilities')
+```
+
+
+5. What is the posterior probability of the Viterbi sequence? Do you find that the Viterbi sequence
+is a good representative for the posterior distribution of hidden state sequences? \
+```{r}
+
+result <- forwardBackward(c(0.5, 0.5), 
+                          matrix(c(0.5,0.5,0.5,0.5), ncol = 2, byrow = T), 
+                          ObsSeq = viterbi$BackTrack,
+                          EmisProb = poisEM)
+
+
+```
+
+
+6. Describe and implement a procedure for simulating a hidden state sequence from the posterior
+distribution. \
+
+In order to simulate a HMM we need initial distribution, and Transition matrix. We generate first state based on initial distribution and continue from there. Each state is generated using function 'sample' based on state before. When we compared it with posterior decoded sequence we can see that is has almost the same number of peaks. \
+
+
+```{r}
+
+simulatedHMM <- HMMsimFct(c(0.5, 0.5), 
+                          TransProb = EstTransMatrix, 
+                          EmisProb = poisEM, 
+                          len = length(ObsSeq))
+
+
+par(mfrow = c(2,1))
+plot(1:length(ObsSeq), simulatedHMM$HidSeq, 
+     col = 'blue', 
+     type = 'l',
+     main = 'Simulated Seq',
+     xlab = 'Seq index', 
+     ylab = 'Observed State')
+plot(1:length(ObsSeq), hmmPoisExp$PostDecode , 
+     col = 'red', 
+     type = 'l',
+     main = 'Posterior decoding Sequence',
+     xlab = 'Seq index', 
+     ylab = 'Observed State')
+```
+
+
+7. Calculate the empirical distribution (from a reasonable number of simulations) of the fraction of
+time, the fetal lamb is in the high activity state. \
+
+I am not sure how to understand this question... Does it ask for time being in high activity state or time where fetal lamb stays in high activity state, so I did both. Regarding first part, I did 5000 simulations of sequences of length 225, count the high states and divide by sequence lenght. Mean value is 0.06 and histogram shows the distribution. \
+Regarding other approach, I simulated long sequence (instead of doing many simulations of short seqeunces) and I counted how many times state 2 was after state 2. If the state was 1 after state 2 I reset counter to 1 and store the results. 
+
+```{r}
+
+
+calcTimeInStateHigh <- function(seq){
+  timeInStateTwo <- c()
+  cnt = 0
+  for (i in 1:(length(seq)-1)){
+    if ( seq[i] == 2 && seq[i+1] == 2) {
+      cnt = cnt + 1
+    } 
+    if (seq[i] == 2 && seq[i+1] == 1) {
+      timeInStateTwo <- append(timeInStateTwo, cnt)
+      cnt = 1
+      
+    }
+  }
+  
+  return(timeInStateTwo)
+}
+
+tmp <- replicate(1000, expr = {
+  simulatedHMM <- HMMsimFct(c(0.5, 0.5), 
+                      TransProb = EstTransMatrix, 
+                      EmisProb = poisEM, 
+                      len = Len)
+  
+  
+  sum(simulatedHMM$HidSeq == 2) /( sum(simulatedHMM$HidSeq == 2) +sum(simulatedHMM$HidSeq == 1))
+})
+hist(tmp)
+mean(tmp)
+
+longSimulate <- HMMsimFct(c(0.5, 0.5), 
+                    TransProb = EstTransMatrix, 
+                    EmisProb = poisEM, 
+                    len = 20000)
+
+timeInHigh <- calcTimeInStateHigh(longSimulate$HidSeq)
+hist(timeInHigh)
+mean(timeInHigh)
+
+
+
+```
+
+8. Supply the empirical distribution with a numerical calculation of the distribution. Plot the two
+distributions and add the fraction from Viterbi and Posterior Decoding. \
+
+9. Do you prefer the simulation-based or the numerical procedure for calculating the fraction of time
+spent in the high activity state? Why? \
+
+10. What is the role of parameter uncertainty? Clearly, the original parameters (a, b, λ 1 , λ 2 ) are
+estimated with some uncertainty. But does that matter for the distribution of the fraction of time
+spent in a state? \
+
+11. We finally consider three statements in Aston and Martin (2007); the full paper is available on
+BlackBoard. \
+
+
+\
+\
+\
+Appendix: \
+
+COPY PASTERINJO entire code
+
+
+

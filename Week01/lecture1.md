@@ -1,0 +1,48 @@
+# Week 1
+## Finite Markov Chains
+
+- finite number of states,states {1,2,3,...}
+- finite time t, starting from 0, 0,1...
+- Process (X(t), t = 0 ), is finite MC if:
+  -fullfils markov properties:
+    -Looks at state currently not before, doesnt matter states before. P( X (t + 1) = k) X(t) , X(t-1) does not matter
+    -Probability going from j to k in time t -> P(X(t-1) = k | X(t) = P_jk(t) )
+      -it can be homogenious, probability is the same in t-1 = t. -> P_jk (t) = Pjk
+    -S number of states, j and k can be any number smaller than S. -> {P_jk i<=j,k<= S}
+      -all states are in matrix, those are probabilities, so no negative probs. You ask what is prob from j to state 1,2,...
+      - 2 constraints on this matrix: must be positive, if we sum over k it must be 1(row sums of matrix must be 1)
+      - Also called Transition matrix/ probabiliy matrix -> {P_jk}
+      - can be written in graphical model, dependency structure
+        - x(0) -> x(1) -> x(2) -> x(3), "x of 0 only depends on X of 1. If we have arrows going from x(1) to x(3) we have second order markov chain"
+    - Initial distributions(how to start MC)
+      -PI = (distribution of state base, non negative, initial distribution) P(X(0) = k ) = PI_k
+      -Graphical representatin in matrix or in circles with arrows with numbers on it representing probs. If prob is 0, you dont draw arrow. Page 180, 4.22.
+      - If we have state in which you stay forever we call it absorbing state, P = 0
+    - Real Adv:
+      - it is matrix = linear algebra. "You just multiply matrices :) "
+      - Linear algebra:
+        - One step: Probability of being in state 1 at time 1, P(X(1) = 1) = PI1 * P_11....
+        - General form:  = (PI'P)
+          - ' is transpose
+          - P(X(i) = k) = PI1 x P_ik + PI2 x P_2k + ... PI_s x P_sk = (PI'P)_k
+          - PI = (PI1, PI2, PI3, PI4,...) P = [[ p_ij, p_ij,... ]]
+        Two step:
+          - ...
+    - Equilibrium/Stationary distribution:
+      - if you start and you apply P (where am I going next?) the distribution does not change at all
+      - If you have aperiodic/irreducible MC it exists for sure. It can exist in other examples
+      - Aperiodic:
+        - Periodic = Markov chain where it just jumps between two states 1 <-> 2, if you are in state 1 in time 1, you are in state 2 in time 2.
+        - in all even times we are in state 1, odds state 2... so we can t talk about equbilirium
+        - This is not allowed to have. That is why it has to be Aperiodic
+      -Ireducable:
+        - we have 2 states 1 and 2. and we have states 3 and 4. you can jump between 3,4 and 1,2. If you start in 1,2 you can go to 3,4... not allowed.
+      - If ireducible and aperiodic are fulfilled we are talking about equilibrium
+      - Stationary distribution is uniqely determined by this situation, state when it occurs
+      - Example from class where state 3 is 0 and you are locked there
+
+
+## Excercise on Wed
+Stat ppl prepare exc 1, 2 and 3
+Bioinf ppl prepare exc 1 and 4
+5 for all
