@@ -1,25 +1,25 @@
 # Week 1
+
 ## Finite Markov Chains
 
-- finite number of states,states {1,2,3,...}
-- finite time t, starting from 0, 0,1...
-- Process (X(t), t = 0 ), is finite MC if:
-  -fullfils markov properties:
-    -Looks at state currently not before, doesnt matter states before. P( X (t + 1) = k) X(t) , X(t-1) does not matter
-    -Probability going from j to k in time t -> P(X(t-1) = k | X(t) = P_jk(t) )
-      -it can be homogenious, probability is the same in t-1 = t. -> P_jk (t) = Pjk
+- finite number of states,states $\{1,2,3,...\}$
+- finite time $t$, starting from 0, $\{t=0, 1, ..., T\}$
+- Process (X(t), t = 0 ), is finite MC if fullfils markov properties:
+    - Looks at state currently not before, doesnt matter states before. $P(X (t + 1) = k) X(t) , X(t-1)$ does not matter
+    - Probability going from j to k in time t -> $P(X(t-1) = k | X(t) = P_jk(t) )$
+      - it can be homogeneous, probability is the same in t-1 = t. -> P_jk (t) = Pjk
     -S number of states, j and k can be any number smaller than S. -> {P_jk i<=j,k<= S}
-      -all states are in matrix, those are probabilities, so no negative probs. You ask what is prob from j to state 1,2,...
+      - all states are in matrix, those are probabilities, so no negative probs. You ask what is prob from j to state 1,2,...
       - 2 constraints on this matrix: must be positive, if we sum over k it must be 1(row sums of matrix must be 1)
       - Also called Transition matrix/ probabiliy matrix -> {P_jk}
       - can be written in graphical model, dependency structure
         - x(0) -> x(1) -> x(2) -> x(3), "x of 0 only depends on X of 1. If we have arrows going from x(1) to x(3) we have second order markov chain"
     - Initial distributions(how to start MC)
-      -PI = (distribution of state base, non negative, initial distribution) P(X(0) = k ) = PI_k
-      -Graphical representatin in matrix or in circles with arrows with numbers on it representing probs. If prob is 0, you dont draw arrow. Page 180, 4.22.
+      - PI = (distribution of state base, non negative, initial distribution) P(X(0) = k ) = PI_k
+      - Graphical representatin in matrix or in circles with arrows with numbers on it representing probs. If prob is 0, you dont draw arrow. Page 180, 4.22.
       - If we have state in which you stay forever we call it absorbing state, P = 0
     - Real Adv:
-      - it is matrix = linear algebra. "You just multiply matrices :) "
+      - it is matrix = linear algebra. "You just multiply matrices :)"
       - Linear algebra:
         - One step: Probability of being in state 1 at time 1, P(X(1) = 1) = PI1 * P_11....
         - General form:  = (PI'P)
