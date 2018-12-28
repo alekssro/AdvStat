@@ -21,7 +21,7 @@ ObsSeq <- c(0,0,0,0,0,1,0,1,0,0,0,0,0,0,1,
 
 obs_var <- sd(ObsSeq)
 one_poiss <- rpois(length(ObsSeq), mean(ObsSeq))
-sd(one_poiss)
+sd(one_poiss); obs_var
 # observed sd doesn't match to a sd of a single poisson distribution with lambda=mean(observations)
 
 # ii) A mixture of two Poisson distributions (corresponding to low or high activity)
