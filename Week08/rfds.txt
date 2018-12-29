@@ -1,0 +1,30 @@
+rang <- 0:20
+init_theta <- test$xList[1,]
+thetas <- rang
+ys <- c() ; gs <- c()
+for (j in 0:length(init_theta)) {
+    for (i in 0:length(thetas)) {
+        ys[i] <- sum(abs(grades - thetas[i]))
+        gs[i] <- 1/2*sum((grades-thetas[i])^2/abs(grades-init_theta[i]) + abs(grades-init_theta[i]))
+        
+    }
+    df <- data.frame(thet = thetas, f = ys, g = gs) 
+    p <- df %>% ggplot() +
+        geom_line(aes(x = thet, y = f)) +
+        geom_line(aes(x = thet, y = g, color = "g")) +
+        geom_vline(aes(xintercept = init_theta[j]))
+    p
+    
+}
+
+
+plot(x = thetas, y = ys, type = "l")
+
+df <- data.frame(thet = thetas, f = ys, g = gs) 
+plot(df$thet, df$f)
+df %>% ggplot() +
+    geom_line(aes(x = thet, y = f)) +
+    geom_line(aes(x = thet, y = g, color = "g")) +
+    geom_vline(aes(xintercept = 2.822891)) +
+    xlim()
+
